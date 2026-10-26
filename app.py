@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import joblib
 from PIL import Image
+from huggingface_hub import hf_hub_download
 
 # ----------------------------------
 # 1. App configuration
@@ -18,19 +19,17 @@ st.set_page_config(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Download ResNet50 model from Hugging Face
 IMAGE_MODEL_PATH = hf_hub_download(
     repo_id="jeetendra-bhosale-2026/tyre-resnet50-model",
     filename="tyre_resnet50_finetuned.keras"
 )
-)
-RUL_MODEL_PATH = os.path.join(
-    BASE_DIR, "tyre_rul_model.pkl"
-)
-FEATURES_PATH = os.path.join(
-    BASE_DIR, "tyre_rul_features.pkl"
-)
 
-IMAGE_SIZE = (224, 224)
+# Numerical RUL model files stored in GitHub
+RUL_MODEL_PATH = os.path.join(BASE_DIR, "tyre_rul_model.pkl")
+FEATURES_PATH = os.path.join(BASE_DIR, "tyre_rul_features.pkl")
+
+IMAGE_SIZE = (128, 128)
 MAX_DISTANCE_KM = 113000.0
 MAX_RUL_KM = 96752.0
 
@@ -41,7 +40,6 @@ REQUIRED_FEATURES = [
     "average_inflation_pressure(psi)"
 ]
 
-# Remember predictions and form values between reruns.
 if "predicted_distance_km" not in st.session_state:
     st.session_state["predicted_distance_km"] = None
 
@@ -81,16 +79,13 @@ st.info(
 
 
 # ----------------------------------
-# 3. Load the image model
+# 3. Load image model
 # ----------------------------------
 image_model = None
 
 try:
-    if not os.path.isfile(IMAGE_MODEL_PATH):
-        raise FileNotFoundError(IMAGE_MODEL_PATH)
-
     image_model = load_image_model()
-    st.success("MobileNetV2 model loaded successfully!")
+    st.success("ResNet50 image model loaded successfully!")
 
 except Exception as e:
     st.error(f"Could not load image model: {e}")
@@ -122,13 +117,9 @@ if uploaded_file is not None:
             width=350
         )
 
-        if st.button(
-            "Predict Distance Travelled",
-            type="primary"
-        ):
+        if st.button("Predict Distance Travelled", type="primary"):
             if image_model is None:
                 st.error("The image model is unavailable.")
-
             else:
                 with st.spinner("Analysing tyre image..."):
                     resized_image = image.resize(IMAGE_SIZE)
@@ -142,8 +133,8 @@ if uploaded_file is not None:
                         image_array, axis=0
                     )
 
-                    # This model expects raw pixel values.
-                    # Its trained architecture handles rescaling.
+                    # Assumes the model was trained using
+                    # raw RGB pixel values from 0 to 255.
                     prediction = image_model.predict(
                         image_array, verbose=0
                     )
@@ -170,10 +161,7 @@ if uploaded_file is not None:
         st.error(f"Could not process image: {e}")
 
 
-# Display the stored image prediction after the button reruns the app.
-predicted_distance = st.session_state[
-    "predicted_distance_km"
-]
+predicted_distance = st.session_state["predicted_distance_km"]
 
 if predicted_distance is not None:
     st.metric(
@@ -185,7 +173,6 @@ if predicted_distance is not None:
         "This is an image-model estimate, not a verified "
         "odometer reading."
     )
-
 
 st.divider()
 
@@ -202,10 +189,14 @@ st.write(
 
 try:
     if not os.path.isfile(RUL_MODEL_PATH):
-        raise FileNotFoundError(RUL_MODEL_PATH)
+        raise FileNotFoundError(
+            f"RUL model not found: {RUL_MODEL_PATH}"
+        )
 
     if not os.path.isfile(FEATURES_PATH):
-        raise FileNotFoundError(FEATURES_PATH)
+        raise FileNotFoundError(
+            f"Feature file not found: {FEATURES_PATH}"
+        )
 
     rul_model = load_rul_model()
     feature_names = load_feature_names()
@@ -228,25 +219,20 @@ try:
         or set(feature_names) != set(REQUIRED_FEATURES)
     ):
         raise ValueError(
-            "The saved feature list does not match the "
-            "four features expected by this application. "
-            f"Saved features: {feature_names}"
+            "The saved feature list does not match the four "
+            f"expected features. Saved features: {feature_names}"
         )
 
     st.success("Numerical RUL model loaded successfully!")
 
-    # Optional: copy the image prediction into the
-    # kilometres-driven field. You can still edit it.
     if predicted_distance is not None:
         if st.button("Use image estimate for kilometres driven"):
             st.session_state[
                 "kilometers_driven_input"
             ] = float(predicted_distance)
-
             st.rerun()
 
     with st.form("rul_prediction_form"):
-
         tread_depth = st.number_input(
             "Current tread depth (mm)",
             min_value=0.0,
@@ -292,7 +278,6 @@ try:
             "average_inflation_pressure(psi)": inflation_pressure
         }
 
-        # Preserve the feature order used during training.
         input_df = pd.DataFrame(
             [[input_values[name] for name in feature_names]],
             columns=feature_names
@@ -317,9 +302,9 @@ try:
         )
 
         st.caption(
-            "This estimate depends on the training data and "
-            "the accuracy of the measurements. It is not a "
-            "guarantee of tyre life or safety."
+            "This is an experimental estimate based on the "
+            "trained model and entered measurements. It is "
+            "not a guarantee of tyre life or safety."
         )
 
 except Exception as e:
