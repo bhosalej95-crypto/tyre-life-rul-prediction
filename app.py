@@ -16,7 +16,7 @@ st.set_page_config(
     layout="centered"
 )
 
-BASE_DIR = r"C:\Users\arjun\Downloads"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 IMAGE_MODEL_PATH = os.path.join(
     BASE_DIR, "tyre_mobilenetv2_finetuned.keras"
