@@ -7,3 +7,4 @@ pandas
 joblib
 scikit-learn==1.8.0
 Pillow
+huggingface_hub
