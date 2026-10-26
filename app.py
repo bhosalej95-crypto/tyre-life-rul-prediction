@@ -18,8 +18,10 @@ st.set_page_config(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-IMAGE_MODEL_PATH = os.path.join(
-    BASE_DIR, "tyre_mobilenetv2_finetuned.keras"
+IMAGE_MODEL_PATH = hf_hub_download(
+    repo_id="jeetendra-bhosale-2026/tyre-resnet50-model",
+    filename="tyre_resnet50_finetuned.keras"
+)
 )
 RUL_MODEL_PATH = os.path.join(
     BASE_DIR, "tyre_rul_model.pkl"
