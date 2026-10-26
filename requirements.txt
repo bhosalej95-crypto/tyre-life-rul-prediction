@@ -1,8 +1,9 @@
 
+
 streamlit
 tensorflow
 numpy
 pandas
 joblib
-scikit-learn
+scikit-learn==1.8.0
 Pillow
