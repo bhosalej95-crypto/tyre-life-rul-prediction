@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Download ResNet50 model from Hugging Face
 IMAGE_MODEL_PATH = hf_hub_download(
     repo_id="jeetendra-bhosale-2026/tyre-resnet50-model",
-    filename="tyre_resnet50_finetuned.keras"
+    filename="tyre_resnet50_distance.keras"
 )
 
 # Numerical RUL model files stored in GitHub
